@@ -25,6 +25,11 @@ pub enum Error {
     LoginFailure(#[from] SfResponse<SfLoginError>),
     #[error("Failed to find necessary environment variables {0}")]
     MissingEnvConfig(#[from] VarError),
+    #[error("Failed to deserialize response")]
+    UnexpectedBody {
+        error: serde_json::Error,
+        body: String,
+    },
 }
 
 pub type SfResult<T> = Result<T, Error>;

@@ -7,6 +7,7 @@
 use error::SfResult;
 use reqwest::{header::HeaderMap, Client, StatusCode};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use util::deser_body;
 use std::fmt;
 use thiserror::Error;
 
@@ -58,17 +59,18 @@ impl SfClient {
             .await?;
         let headers = response.headers().clone();
         let status = response.status().clone();
+        let body = response.text().await?;
 
-        match response.status() {
+        match status {
             StatusCode::OK => Ok(SfResponse {
                 headers,
                 status,
-                body: response.json().await?,
+                body: deser_body(&body)?,
             }),
             _ => Err(SfResponse {
                 headers,
                 status,
-                body: Some(response.json::<Vec<SfApiError>>().await?),
+                body: Some(deser_body::<Vec<SfApiError>>(&body)?),
             })?,
         }
     }
@@ -86,17 +88,18 @@ impl SfClient {
             .await?;
         let headers = response.headers().clone();
         let status = response.status().clone();
+        let body = response.text().await?;
 
         match status {
             StatusCode::CREATED => Ok(SfResponse {
                 headers,
                 status,
-                body: response.json().await?,
+                body: deser_body(&body)?,
             }),
             _ => Err(SfResponse {
                 headers,
                 status,
-                body: Some(response.json::<Vec<SfApiError>>().await?),
+                body: Some(deser_body::<Vec<SfApiError>>(&body)?),
             })?,
         }
     }
@@ -115,21 +118,22 @@ impl SfClient {
             .await?;
         let headers = response.headers().clone();
         let status = response.status().clone();
+        let body = response.text().await?;
 
-        match response.status() {
+        match status {
             StatusCode::NO_CONTENT | StatusCode::CREATED | StatusCode::OK => Ok(SfResponse {
                 headers,
                 status,
-                body: if is_unit::<U>() {
+                body: if is_unit::<U>() && body == "" {
                     None
                 } else {
-                    Some(response.json().await?)
+                    Some(deser_body(&body)?)
                 },
             }),
             _ => Err(SfResponse {
                 headers,
                 status,
-                body: Some(response.json::<Vec<SfApiError>>().await?),
+                body: Some(deser_body::<Vec<SfApiError>>(&body)?),
             })?,
         }
     }
@@ -143,8 +147,9 @@ impl SfClient {
             .await?;
         let headers = response.headers().clone();
         let status = response.status().clone();
+        let body = response.text().await?;
 
-        match response.status() {
+        match status {
             StatusCode::NO_CONTENT => Ok(SfResponse {
                 headers,
                 status,
@@ -153,7 +158,7 @@ impl SfClient {
             _ => Err(SfResponse {
                 headers,
                 status,
-                body: Some(response.json::<Vec<SfApiError>>().await?),
+                body: Some(deser_body::<Vec<SfApiError>>(&body)?),
             })?,
         }
     }
@@ -312,7 +317,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn describe_object() {
+    async fn test_describe_object() {
         let server = MockServer::start().await;
         add_token_mock(&server).await;
 
@@ -335,7 +340,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn describe_objects() {
+    async fn test_describe_objects() {
         let server = MockServer::start().await;
         add_token_mock(&server).await;
 
@@ -360,7 +365,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn create_object_ok() {
+    async fn test_create_object_ok() {
         let server = MockServer::start().await;
         add_token_mock(&server).await;
 
@@ -397,7 +402,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn create_object_err() {
+    async fn test_create_object_err() {
         let server = MockServer::start().await;
         add_token_mock(&server).await;
 
@@ -435,6 +440,40 @@ mod tests {
 
         if let Error::ApiFailure(err) = err {
             assert_eq!(expected_response, err.body.unwrap());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_returns_body_on_deser_failure() {
+        let server = MockServer::start().await;
+        add_token_mock(&server).await;
+
+        let expected_body = r#"{"invalid":"notvalid"}"#.to_string();
+
+        Mock::given(method("GET"))
+            .and(path("/services/data/v12345.0/sobjects/Lead/123"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(&expected_body))
+            .mount(&server)
+            .await;
+
+        let client = get_client(&server).await;
+
+        #[derive(Debug, Deserialize)]
+        struct Lead {
+            #[allow(dead_code)]
+            id: String,
+        }
+
+        let response = client
+            .get_object::<Lead>("Lead", "123")
+            .await;
+
+        let err = response.unwrap_err();
+
+        assert!(matches!(err, Error::UnexpectedBody { .. }));
+
+        if let Error::UnexpectedBody { body, .. } = err {
+            assert_eq!(expected_body, body);
         }
     }
 }
