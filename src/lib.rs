@@ -7,9 +7,9 @@
 use error::SfResult;
 use reqwest::{header::HeaderMap, Client, StatusCode};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use util::deser_body;
 use std::fmt;
 use thiserror::Error;
+use util::deser_body;
 
 pub mod authenticator;
 pub use authenticator::{
@@ -464,9 +464,7 @@ mod tests {
             id: String,
         }
 
-        let response = client
-            .get_object::<Lead>("Lead", "123")
-            .await;
+        let response = client.get_object::<Lead>("Lead", "123").await;
 
         let err = response.unwrap_err();
 

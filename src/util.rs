@@ -7,15 +7,19 @@
 use serde::de::DeserializeOwned;
 use std::any::{Any, TypeId};
 
-use crate::error::{SfResult, Error};
+use crate::error::{Error, SfResult};
 
 pub fn is_unit<T: Any>() -> bool {
     TypeId::of::<T>() == TypeId::of::<()>()
 }
 
-pub fn deser_body<T>(body: &str) -> SfResult<T> where T: DeserializeOwned {
-    serde_json::from_str(body).map_err(|error| {
-        Error::UnexpectedBody { error, body: body.to_string() }
+pub fn deser_body<T>(body: &str) -> SfResult<T>
+where
+    T: DeserializeOwned,
+{
+    serde_json::from_str(body).map_err(|error| Error::UnexpectedBody {
+        error,
+        body: body.to_string(),
     })
 }
 
