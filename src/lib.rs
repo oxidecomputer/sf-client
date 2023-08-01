@@ -192,6 +192,15 @@ impl SfClient {
         self.get::<T>(&format!("{}/{}", object, id)).await
     }
 
+    pub async fn query<T>(&self, query: &str) -> SfResult<SfResponse<QueryResponse<T>>>
+    where
+        T: DeserializeOwned,
+    {
+        let query = urlencoding::encode(query);
+        self.get::<QueryResponse<T>>(&format!("query/?q={}", query))
+            .await
+    }
+
     pub async fn update_object<T>(
         &self,
         object: &str,
@@ -240,6 +249,30 @@ pub struct SfApiError {
     #[serde(rename = "errorCode")]
     pub error_code: String,
     pub message: String,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub struct QueryResponse<T> {
+    #[serde(rename = "totalSize")]
+    pub total_size: i32,
+    pub done: bool,
+    #[serde(rename = "nextRecordsUrl")]
+    pub next_records_url: String,
+    pub records: Vec<QueryRecord<T>>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub struct QueryRecord<T> {
+    pub attributes: QueryRecordAttributes,
+    #[serde(flatten)]
+    pub object: T,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub struct QueryRecordAttributes {
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub url: String,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
