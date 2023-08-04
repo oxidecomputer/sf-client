@@ -268,7 +268,7 @@ pub struct QueryResponse<T> {
     pub total_size: i32,
     pub done: bool,
     #[serde(rename = "nextRecordsUrl")]
-    pub next_records_url: String,
+    pub next_records_url: Option<String>,
     pub records: Vec<QueryRecord<T>>,
 }
 
