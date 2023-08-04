@@ -41,9 +41,14 @@ impl SfClient {
 
     fn url(&self, path: &str) -> String {
         let url = format!(
-            "{}/services/data/v{}/sobjects/{}",
+            "{}/services/data/v{}/{}",
             self.instance_url, self.version, path
         );
+        url
+    }
+
+    fn object_path(&self, path: &str) -> String {
+        let url = format!("sobjects/{}", path);
         url
     }
 
@@ -164,14 +169,14 @@ impl SfClient {
     }
 
     pub async fn describe_objects(&self) -> SfResult<SfResponse<ObjectDescriptionsResponse>> {
-        self.get("").await
+        self.get(&self.object_path("")).await
     }
 
     pub async fn describe_object(
         &self,
         object: &str,
     ) -> SfResult<SfResponse<ObjectDescriptionResponse>> {
-        self.get(&format!("{}", object)).await
+        self.get(&self.object_path(object)).await
     }
 
     pub async fn create_object<T>(
@@ -182,14 +187,15 @@ impl SfClient {
     where
         T: Serialize,
     {
-        self.post(&format!("{}", object), body).await
+        self.post(&self.object_path(object), body).await
     }
 
     pub async fn get_object<T>(&self, object: &str, id: &str) -> SfResult<SfResponse<T>>
     where
         T: DeserializeOwned,
     {
-        self.get::<T>(&format!("{}/{}", object, id)).await
+        self.get::<T>(&self.object_path(&format!("{}/{}", object, id)))
+            .await
     }
 
     pub async fn query<T>(&self, query: &str) -> SfResult<SfResponse<QueryResponse<T>>>
@@ -210,7 +216,8 @@ impl SfClient {
     where
         T: Serialize,
     {
-        self.patch(&format!("{}/{}", object, id), body).await
+        self.patch(&self.object_path(&format!("{}/{}", object, id)), body)
+            .await
     }
 
     pub async fn upsert_object<T>(
@@ -222,12 +229,16 @@ impl SfClient {
     where
         T: Serialize,
     {
-        self.patch(&format!("{}/{}/{}", object, id.field, id.value), body)
-            .await
+        self.patch(
+            &self.object_path(&format!("{}/{}/{}", object, id.field, id.value)),
+            body,
+        )
+        .await
     }
 
     pub async fn delete_object(&self, object: &str, id: &str) -> SfResult<SfResponse<()>> {
-        self.delete(&format!("{}/{}", object, id)).await
+        self.delete(&self.object_path(&format!("{}/{}", object, id)))
+            .await
     }
 }
 
