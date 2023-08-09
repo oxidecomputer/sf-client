@@ -57,9 +57,12 @@ impl SfClient {
     where
         T: DeserializeOwned,
     {
+        let url = self.url(path);
+        tracing::trace!(?url, "GET request");
+
         let response = self
             .inner
-            .get(&self.url(path))
+            .get(&url)
             .bearer_auth(&self.bearer)
             .send()
             .await?;
@@ -85,9 +88,12 @@ impl SfClient {
     where
         T: Serialize,
     {
+        let url = self.url(path);
+        tracing::trace!(?url, "POST request");
+
         let response = self
             .inner
-            .post(&self.url(path))
+            .post(&url)
             .bearer_auth(&self.bearer)
             .json(&body)
             .send()
@@ -115,9 +121,12 @@ impl SfClient {
         T: Serialize,
         U: DeserializeOwned + 'static,
     {
+        let url = self.url(path);
+        tracing::trace!(?url, "PATCH request");
+
         let response = self
             .inner
-            .patch(&self.url(path))
+            .patch(&url)
             .bearer_auth(&self.bearer)
             .json(&body)
             .send()
@@ -145,9 +154,12 @@ impl SfClient {
     }
 
     async fn delete(&self, path: &str) -> SfResult<SfResponse<()>> {
+        let url = self.url(path);
+        tracing::trace!(?url, "DELETE request");
+
         let response = self
             .inner
-            .delete(&self.url(path))
+            .delete(&url)
             .bearer_auth(&self.bearer)
             .send()
             .await?;
