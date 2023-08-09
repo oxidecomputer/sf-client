@@ -30,6 +30,8 @@ pub enum Error {
         error: serde_json::Error,
         body: String,
     },
+    #[error("Unknown request failed {0}")]
+    UnknownApiFailure(#[from] SfResponse<String>),
 }
 
 pub type SfResult<T> = Result<T, Error>;

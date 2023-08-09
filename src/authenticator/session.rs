@@ -54,7 +54,7 @@ impl Authenticator for SessionAuthenticator {
             _ => Err(SfResponse {
                 headers: response.headers().clone(),
                 status: response.status(),
-                body: Some(response.json::<SfLoginError>().await?),
+                body: Some(response.text().await?),
             })?,
         }
     }
