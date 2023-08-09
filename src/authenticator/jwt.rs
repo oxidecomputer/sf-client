@@ -16,7 +16,7 @@ use crate::{
     SfResponse,
 };
 
-use super::{Authenticator, AuthorizationServer, SfAccessToken};
+use super::{Authenticator, AuthorizationServer, SfAccessToken, SfUserInfo};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct LoginClaims {
@@ -138,6 +138,26 @@ impl Authenticator for JwtAuthenticator {
             .inner
             .post(&format!("{}/services/oauth2/token", self.instance))
             .form(&form)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => Ok(response.json().await?),
+            _ => Err(SfResponse {
+                headers: response.headers().clone(),
+                status: response.status(),
+                body: Some(response.json::<SfLoginError>().await?),
+            })?,
+        }
+    }
+
+    async fn user_info(&self) -> SfResult<SfUserInfo> {
+        let token = self.get_token().await?;
+
+        let response = self
+            .inner
+            .get(&format!("{}/services/oauth2/token", self.instance))
+            .bearer_auth(token.access_token)
             .send()
             .await?;
 
