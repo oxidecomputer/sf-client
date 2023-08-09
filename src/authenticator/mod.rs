@@ -39,5 +39,4 @@ pub struct SfAccessToken {
 #[async_trait]
 pub trait Authenticator {
     async fn get_token(&self) -> SfResult<SfAccessToken>;
-    async fn user_info(&self) -> SfResult<serde_json::Value>;
 }
