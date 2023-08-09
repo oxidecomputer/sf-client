@@ -14,6 +14,7 @@ use util::deser_body;
 pub mod authenticator;
 pub use authenticator::{
     jwt::{JwtAuthenticator, LoginClaims},
+    session::SessionAuthenticator,
     Authenticator, AuthorizationServer,
 };
 

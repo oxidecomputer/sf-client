@@ -6,7 +6,7 @@
 
 use async_trait::async_trait;
 
-use crate::{Authenticator, error::SfResult};
+use crate::{error::SfResult, Authenticator};
 
 use super::SfAccessToken;
 
@@ -32,7 +32,7 @@ impl Authenticator for SessionAuthenticator {
             scope: String::new(),
             instance_url: self.instance_url.clone(),
             id: String::new(),
-            token_type: String::new()
+            token_type: String::new(),
         })
     }
 }
