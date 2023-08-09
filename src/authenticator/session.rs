@@ -42,6 +42,8 @@ impl Authenticator for SessionAuthenticator {
     async fn user_info(&self) -> SfResult<SfUserInfo> {
         let token = self.get_token().await?;
 
+        tracing::debug!(url = ?format!("{}/services/oauth2/userinfo", self.instance_url), "Requesting user info");
+
         let response = self
             .inner
             .get(&format!("{}/services/oauth2/userinfo", self.instance_url))

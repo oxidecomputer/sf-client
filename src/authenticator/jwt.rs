@@ -154,6 +154,8 @@ impl Authenticator for JwtAuthenticator {
     async fn user_info(&self) -> SfResult<SfUserInfo> {
         let token = self.get_token().await?;
 
+        tracing::debug!(url = ?format!("{}/services/oauth2/userinfo", self.instance), "Requesting user info");
+
         let response = self
             .inner
             .get(&format!("{}/services/oauth2/userinfo", self.instance))
