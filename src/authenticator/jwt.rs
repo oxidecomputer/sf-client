@@ -156,7 +156,7 @@ impl Authenticator for JwtAuthenticator {
 
         let response = self
             .inner
-            .get(&format!("{}/services/oauth2/token", self.instance))
+            .get(&format!("{}/services/oauth2/userinfo", self.instance))
             .bearer_auth(token.access_token)
             .send()
             .await?;
