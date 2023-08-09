@@ -11,6 +11,7 @@ use std::fmt::Display;
 use crate::error::SfResult;
 
 pub mod jwt;
+pub mod session;
 
 pub enum AuthorizationServer {
     Live,
