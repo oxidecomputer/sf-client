@@ -150,6 +150,26 @@ impl Authenticator for JwtAuthenticator {
             })?,
         }
     }
+
+    async fn user_info(&self) -> SfResult<serde_json::Value> {
+        let token = self.get_token().await?;
+
+        let response = self
+            .inner
+            .get(&format!("{}/services/oauth2/token", self.instance))
+            .bearer_auth(token.access_token)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => Ok(response.json().await?),
+            _ => Err(SfResponse {
+                headers: response.headers().clone(),
+                status: response.status(),
+                body: Some(response.json::<SfLoginError>().await?),
+            })?,
+        }
+    }
 }
 
 #[cfg(test)]

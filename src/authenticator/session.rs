@@ -5,21 +5,33 @@
 // Copyright 2023 Oxide Computer Company
 
 use async_trait::async_trait;
+use reqwest::{Client as HttpClient, StatusCode};
 
-use crate::{error::SfResult, Authenticator};
+use crate::{
+    error::{SfLoginError, SfResult},
+    Authenticator, AuthorizationServer, SfResponse,
+};
 
 use super::SfAccessToken;
 
 pub struct SessionAuthenticator {
+    inner: HttpClient,
     access_token: String,
     instance_url: String,
+    auth_server: AuthorizationServer,
 }
 
 impl SessionAuthenticator {
-    pub fn new(access_token: String, instance_url: String) -> Self {
+    pub fn new(
+        access_token: String,
+        instance_url: String,
+        auth_server: AuthorizationServer,
+    ) -> Self {
         Self {
+            inner: HttpClient::new(),
             access_token,
             instance_url,
+            auth_server,
         }
     }
 }
@@ -34,5 +46,25 @@ impl Authenticator for SessionAuthenticator {
             id: String::new(),
             token_type: String::new(),
         })
+    }
+
+    async fn user_info(&self) -> SfResult<serde_json::Value> {
+        let token = self.get_token().await?;
+
+        let response = self
+            .inner
+            .get(&format!("{}/services/oauth2/token", self.auth_server))
+            .bearer_auth(token.access_token)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => Ok(response.json().await?),
+            _ => Err(SfResponse {
+                headers: response.headers().clone(),
+                status: response.status(),
+                body: Some(response.json::<SfLoginError>().await?),
+            })?,
+        }
     }
 }
