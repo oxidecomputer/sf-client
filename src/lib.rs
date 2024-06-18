@@ -7,8 +7,6 @@
 use error::SfResult;
 use reqwest::{header::HeaderMap, Client, StatusCode};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-#[cfg(features = "keep-alive")]
-use tokio::task::JoinHandle;
 use std::fmt;
 use thiserror::Error;
 use util::deser_body;
@@ -29,8 +27,8 @@ pub struct SfClient {
     instance_url: String,
     version: String,
     bearer: String,
-    #[cfg(features = "keep-alive")]
-    keep_alive: Option<JoinHandle<()>>,
+    #[cfg(feature = "keep-alive")]
+    keep_alive: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl SfClient {
@@ -41,7 +39,7 @@ impl SfClient {
             instance_url: token.instance_url,
             version,
             bearer: token.access_token,
-            #[cfg(features = "keep-alive")]
+            #[cfg(feature = "keep-alive")]
             keep_alive: None,
         })
     }
@@ -260,7 +258,7 @@ impl SfClient {
             .await
     }
 
-    #[cfg(features = "keep-alive")]
+    #[cfg(feature = "keep-alive")]
     pub fn start_keep_alive(&mut self, mut interval: tokio::time::Interval) {
         let client = self.inner.clone();
         let bearer = self.bearer.clone();
