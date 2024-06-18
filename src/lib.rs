@@ -7,6 +7,8 @@
 use error::SfResult;
 use reqwest::{header::HeaderMap, Client, StatusCode};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+#[cfg(features = "keep-alive")]
+use tokio::task::JoinHandle;
 use std::fmt;
 use thiserror::Error;
 use util::deser_body;
@@ -27,6 +29,8 @@ pub struct SfClient {
     instance_url: String,
     version: String,
     bearer: String,
+    #[cfg(features = "keep-alive")]
+    keep_alive: Option<JoinHandle<()>>,
 }
 
 impl SfClient {
@@ -37,6 +41,8 @@ impl SfClient {
             instance_url: token.instance_url,
             version,
             bearer: token.access_token,
+            #[cfg(features = "keep-alive")]
+            keep_alive: None,
         })
     }
 
@@ -252,6 +258,44 @@ impl SfClient {
     pub async fn delete_object(&self, object: &str, id: &str) -> SfResult<SfResponse<()>> {
         self.delete(&self.object_path(&format!("{}/{}", object, id)))
             .await
+    }
+
+    #[cfg(features = "keep-alive")]
+    pub fn start_keep_alive(&mut self, mut interval: tokio::time::Interval) {
+        let client = self.inner.clone();
+        let bearer = self.bearer.clone();
+        let url = self.url("");
+
+        self.keep_alive = Some(tokio::spawn(async move {
+            println!("Start keep alive");
+            loop {
+                println!("start loop");
+                interval.tick().await;
+                tracing::trace!(?url, "Keep-alive GET request");
+
+                match client
+                    .get(&url)
+                    .bearer_auth(&bearer)
+                    .send()
+                    .await {
+                    Ok(response) => {
+                        match response.status() {
+                            StatusCode::OK => {
+                                println!("ok");
+                            },
+                            status => {
+                                println!("err2");
+                                tracing::warn!(?status, "Keep-alive returned non-OK status code");
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        println!("err1");
+                        tracing::warn!(?err, "Failed to make keep-alive request");
+                    }
+                }
+            }
+        }));
     }
 }
 
