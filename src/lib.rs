@@ -265,30 +265,18 @@ impl SfClient {
         let url = self.url("");
 
         self.keep_alive = Some(tokio::spawn(async move {
-            println!("Start keep alive");
             loop {
-                println!("start loop");
                 interval.tick().await;
                 tracing::trace!(?url, "Keep-alive GET request");
 
-                match client
-                    .get(&url)
-                    .bearer_auth(&bearer)
-                    .send()
-                    .await {
-                    Ok(response) => {
-                        match response.status() {
-                            StatusCode::OK => {
-                                println!("ok");
-                            },
-                            status => {
-                                println!("err2");
-                                tracing::warn!(?status, "Keep-alive returned non-OK status code");
-                            }
+                match client.get(&url).bearer_auth(&bearer).send().await {
+                    Ok(response) => match response.status() {
+                        StatusCode::OK => (),
+                        status => {
+                            tracing::warn!(?status, "Keep-alive returned non-OK status code");
                         }
-                    }
+                    },
                     Err(err) => {
-                        println!("err1");
                         tracing::warn!(?err, "Failed to make keep-alive request");
                     }
                 }
