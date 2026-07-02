@@ -6,14 +6,14 @@
 
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
 use reqwest::{Client as HttpClient, StatusCode};
 use serde::Serialize;
 use std::{env::var, fs::File, io::Read, ops::Add, path::Path};
 
 use crate::{
-    error::{SfLoginError, SfResult},
     SfResponse,
+    error::{SfLoginError, SfResult},
 };
 
 use super::{Authenticator, AuthorizationServer, SfAccessToken, SfUserInfo};
@@ -176,10 +176,10 @@ impl Authenticator for JwtAuthenticator {
 
 #[cfg(test)]
 pub mod tests {
-    use rsa::{pkcs1::EncodeRsaPrivateKey, RsaPrivateKey};
+    use rsa::{RsaPrivateKey, pkcs1::EncodeRsaPrivateKey};
     use wiremock::{
-        matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
+        matchers::{method, path},
     };
 
     use super::*;

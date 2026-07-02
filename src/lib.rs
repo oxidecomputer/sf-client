@@ -5,17 +5,17 @@
 // Copyright 2023 Oxide Computer Company
 
 use error::SfResult;
-use reqwest::{header::HeaderMap, Client, StatusCode};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use reqwest::{Client, StatusCode, header::HeaderMap};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::fmt;
 use thiserror::Error;
 use util::deser_body;
 
 pub mod authenticator;
 pub use authenticator::{
+    Authenticator, AuthorizationServer,
     jwt::{JwtAuthenticator, LoginClaims},
     session::SessionAuthenticator,
-    Authenticator, AuthorizationServer,
 };
 
 use crate::util::is_unit;
@@ -370,17 +370,17 @@ impl ExternalId {
 #[cfg(test)]
 mod tests {
     use wiremock::{
-        matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
+        matchers::{method, path},
     };
 
     use crate::{
         authenticator::{
-            jwt::{
-                tests::{add_token_mock, private_key},
-                JwtAuthenticator, LoginClaims,
-            },
             AuthorizationServer,
+            jwt::{
+                JwtAuthenticator, LoginClaims,
+                tests::{add_token_mock, private_key},
+            },
         },
         error::Error,
     };
