@@ -185,7 +185,7 @@ pub mod tests {
     use super::*;
 
     pub fn private_key() -> Vec<u8> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rsa::rand_core::OsRng;
         RsaPrivateKey::new(&mut rng, 2048)
             .unwrap()
             .to_pkcs1_pem(rsa::pkcs8::LineEnding::LF)
