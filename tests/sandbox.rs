@@ -9,12 +9,12 @@
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use sf_client::{
+    ExternalId, SfClient,
     authenticator::{
-        jwt::{JwtAuthenticator, LoginClaims},
         AuthorizationServer,
+        jwt::{JwtAuthenticator, LoginClaims},
     },
     error::Error,
-    ExternalId, SfClient,
 };
 use std::env::var;
 

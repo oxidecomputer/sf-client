@@ -7,7 +7,7 @@
 use async_trait::async_trait;
 use reqwest::{Client as HttpClient, StatusCode};
 
-use crate::{error::SfResult, Authenticator, SfResponse};
+use crate::{Authenticator, SfResponse, error::SfResult};
 
 use super::{SfAccessToken, SfUserInfo};
 
