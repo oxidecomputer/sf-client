@@ -1,0 +1,16 @@
+name: license-check
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  license:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Check License Header
+        uses: apache/skywalking-eyes/header@55373684d1b70e5f8fd9fc8ec114a89ad11a56a3
