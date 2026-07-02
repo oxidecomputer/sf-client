@@ -68,7 +68,7 @@ impl LoginForm {
     pub fn new(claims: &LoginClaims, key: &[u8]) -> SfResult<Self> {
         Ok(Self {
             grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer".to_string(),
-            assertion: Self::create_assertion(claims, &key)?,
+            assertion: Self::create_assertion(claims, key)?,
             format: LoginResponseFormat::Json,
         })
     }
@@ -78,7 +78,7 @@ impl LoginForm {
     }
 
     fn create_assertion(claims: &LoginClaims, key: &[u8]) -> SfResult<String> {
-        let enc_key = EncodingKey::from_rsa_pem(&key)?;
+        let enc_key = EncodingKey::from_rsa_pem(key)?;
         Ok(encode(&Self::header(), claims, &enc_key)?)
     }
 }
@@ -136,7 +136,7 @@ impl Authenticator for JwtAuthenticator {
         let form = LoginForm::new(&self.claims, &self.key)?;
         let response = self
             .inner
-            .post(&format!("{}/services/oauth2/token", self.instance))
+            .post(format!("{}/services/oauth2/token", self.instance))
             .form(&form)
             .send()
             .await?;
@@ -158,7 +158,7 @@ impl Authenticator for JwtAuthenticator {
 
         let response = self
             .inner
-            .get(&format!("{}/services/oauth2/userinfo", self.instance))
+            .get(format!("{}/services/oauth2/userinfo", self.instance))
             .bearer_auth(token.access_token)
             .send()
             .await?;
@@ -206,7 +206,7 @@ pub mod tests {
         Mock::given(method("POST"))
             .and(path("/services/oauth2/token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(&mock_response))
-            .mount(&server)
+            .mount(server)
             .await;
 
         mock_response

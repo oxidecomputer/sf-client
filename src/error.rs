@@ -14,7 +14,7 @@ use crate::{SfApiError, SfResponse};
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("API request failed {0}")]
-    ApiFailure(#[from] SfResponse<Vec<SfApiError>>),
+    ApiFailure(Box<SfResponse<Vec<SfApiError>>>),
     #[error("Request failed {0}")]
     Client(#[from] ClientError),
     #[error("Failed to create authentication assertion {0}")]
@@ -22,7 +22,7 @@ pub enum Error {
     #[error("Failed to load key {0}")]
     LoadKey(#[from] std::io::Error),
     #[error("Login request failed {0}")]
-    LoginFailure(#[from] SfResponse<SfLoginError>),
+    LoginFailure(Box<SfResponse<SfLoginError>>),
     #[error("Failed to find necessary environment variables {0}")]
     MissingEnvConfig(#[from] VarError),
     #[error("Failed to deserialize response")]
@@ -31,10 +31,28 @@ pub enum Error {
         body: String,
     },
     #[error("Unknown request failed {0}")]
-    UnknownApiFailure(#[from] SfResponse<String>),
+    UnknownApiFailure(Box<SfResponse<String>>),
 }
 
 pub type SfResult<T> = Result<T, Error>;
+
+impl From<SfResponse<Vec<SfApiError>>> for Error {
+    fn from(response: SfResponse<Vec<SfApiError>>) -> Self {
+        Self::ApiFailure(Box::new(response))
+    }
+}
+
+impl From<SfResponse<SfLoginError>> for Error {
+    fn from(response: SfResponse<SfLoginError>) -> Self {
+        Self::LoginFailure(Box::new(response))
+    }
+}
+
+impl From<SfResponse<String>> for Error {
+    fn from(response: SfResponse<String>) -> Self {
+        Self::UnknownApiFailure(Box::new(response))
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct SfLoginError {
