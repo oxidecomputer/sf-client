@@ -71,7 +71,7 @@ impl SfClient {
             .send()
             .await?;
         let headers = response.headers().clone();
-        let status = response.status().clone();
+        let status = response.status();
         let body = response.text().await?;
 
         match status {
@@ -103,7 +103,7 @@ impl SfClient {
             .send()
             .await?;
         let headers = response.headers().clone();
-        let status = response.status().clone();
+        let status = response.status();
         let body = response.text().await?;
 
         match status {
@@ -136,14 +136,14 @@ impl SfClient {
             .send()
             .await?;
         let headers = response.headers().clone();
-        let status = response.status().clone();
+        let status = response.status();
         let body = response.text().await?;
 
         match status {
             StatusCode::NO_CONTENT | StatusCode::CREATED | StatusCode::OK => Ok(SfResponse {
                 headers,
                 status,
-                body: if is_unit::<U>() && body == "" {
+                body: if is_unit::<U>() && body.is_empty() {
                     None
                 } else {
                     Some(deser_body(&body)?)
@@ -168,7 +168,7 @@ impl SfClient {
             .send()
             .await?;
         let headers = response.headers().clone();
-        let status = response.status().clone();
+        let status = response.status();
         let body = response.text().await?;
 
         match status {
@@ -397,10 +397,9 @@ mod tests {
 
         let authenticator = JwtAuthenticator::new(&server.uri(), claims, key);
 
-        let client = SfClient::new("12345.0".to_string(), authenticator)
+        SfClient::new("12345.0".to_string(), authenticator)
             .await
-            .unwrap();
-        client
+            .unwrap()
     }
 
     #[tokio::test]

@@ -46,7 +46,7 @@ impl Authenticator for SessionAuthenticator {
 
         let response = self
             .inner
-            .get(&format!("{}/services/oauth2/userinfo", self.instance_url))
+            .get(format!("{}/services/oauth2/userinfo", self.instance_url))
             .bearer_auth(token.access_token)
             .send()
             .await?;

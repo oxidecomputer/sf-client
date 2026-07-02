@@ -19,7 +19,7 @@ use sf_client::{
 use std::env::var;
 
 fn tvar(name: &str) -> String {
-    var(name).expect(&format!("Failed to find expected variable {}", name))
+    var(name).unwrap_or_else(|_| panic!("Failed to find expected variable {}", name))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
