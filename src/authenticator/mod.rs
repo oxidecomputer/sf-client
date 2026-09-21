@@ -14,6 +14,8 @@ use crate::error::SfResult;
 pub mod jwt;
 pub mod session;
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum AuthorizationServer {
     Live,
     Test,
