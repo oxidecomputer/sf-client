@@ -268,10 +268,9 @@ impl SfClient {
     }
 
     #[cfg(feature = "keep-alive")]
-    pub fn start_keep_alive(&mut self, mut interval: tokio::time::Interval) {
+    pub async fn start_keep_alive(&mut self, mut interval: tokio::time::Interval) -> SfResult<()> {
         let client = self.inner.clone();
-        let bearer = self.bearer.clone();
-        let url = self.url("");
+        let (url, bearer) = self.url("").await?;
 
         self.keep_alive = Some(tokio::spawn(async move {
             loop {
@@ -291,6 +290,8 @@ impl SfClient {
                 }
             }
         }));
+
+        Ok(())
     }
 }
 
