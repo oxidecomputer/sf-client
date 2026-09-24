@@ -67,7 +67,7 @@ pub struct SfUserInfo {
 }
 
 #[async_trait]
-pub trait Authenticator {
+pub trait Authenticator: Send + Sync {
     async fn get_token(&self) -> SfResult<SfAccessToken>;
     async fn user_info(&self) -> SfResult<SfUserInfo>;
 }

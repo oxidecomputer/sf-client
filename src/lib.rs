@@ -7,7 +7,10 @@
 use error::SfResult;
 use reqwest::{Client, StatusCode, header::HeaderMap};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use std::fmt;
+use std::{
+    fmt,
+    sync::{Arc, RwLock},
+};
 use thiserror::Error;
 use util::deser_body;
 
@@ -24,32 +27,48 @@ mod util;
 
 pub struct SfClient {
     inner: Client,
-    instance_url: String,
+    authenticator: Arc<dyn Authenticator>,
     version: String,
-    bearer: String,
+    instance_url: Arc<RwLock<Option<String>>>,
+    bearer: Arc<RwLock<Option<String>>>,
     #[cfg(feature = "keep-alive")]
     keep_alive: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl SfClient {
-    pub async fn new(version: String, authenticator: impl Authenticator) -> SfResult<Self> {
-        let token = authenticator.get_token().await?;
+    pub async fn new(
+        version: String,
+        authenticator: impl Authenticator + 'static,
+    ) -> SfResult<Self> {
         Ok(Self {
             inner: Client::new(),
-            instance_url: token.instance_url,
+            authenticator: Arc::new(authenticator),
             version,
-            bearer: token.access_token,
+            instance_url: Arc::new(RwLock::new(None)),
+            bearer: Arc::new(RwLock::new(None)),
             #[cfg(feature = "keep-alive")]
             keep_alive: None,
         })
     }
 
-    fn url(&self, path: &str) -> String {
-        let url = format!(
-            "{}/services/data/v{}/{}",
-            self.instance_url, self.version, path
-        );
-        url
+    async fn bearer(&self) -> SfResult<(String, String)> {
+        if let (Some(url), Some(bearer)) = (
+            self.instance_url.read().unwrap().clone(),
+            self.bearer.read().unwrap().clone(),
+        ) {
+            Ok((url, bearer))
+        } else {
+            let token = self.authenticator.get_token().await?;
+            *self.instance_url.write().unwrap() = Some(token.instance_url.clone());
+            *self.bearer.write().unwrap() = Some(token.access_token.clone());
+            Ok((token.instance_url, token.access_token))
+        }
+    }
+
+    async fn url(&self, path: &str) -> SfResult<(String, String)> {
+        let (instance_url, bearer) = self.bearer().await?;
+        let url = format!("{}/services/data/v{}/{}", instance_url, self.version, path);
+        Ok((url, bearer))
     }
 
     fn object_path(&self, path: &str) -> String {
@@ -61,15 +80,10 @@ impl SfClient {
     where
         T: DeserializeOwned,
     {
-        let url = self.url(path);
+        let (url, bearer) = self.url(path).await?;
         tracing::trace!(?url, "GET request");
 
-        let response = self
-            .inner
-            .get(&url)
-            .bearer_auth(&self.bearer)
-            .send()
-            .await?;
+        let response = self.inner.get(&url).bearer_auth(&bearer).send().await?;
         let headers = response.headers().clone();
         let status = response.status();
         let body = response.text().await?;
@@ -92,13 +106,13 @@ impl SfClient {
     where
         T: Serialize,
     {
-        let url = self.url(path);
+        let (url, bearer) = self.url(path).await?;
         tracing::trace!(?url, "POST request");
 
         let response = self
             .inner
             .post(&url)
-            .bearer_auth(&self.bearer)
+            .bearer_auth(&bearer)
             .json(&body)
             .send()
             .await?;
@@ -125,13 +139,13 @@ impl SfClient {
         T: Serialize,
         U: DeserializeOwned + 'static,
     {
-        let url = self.url(path);
+        let (url, bearer) = self.url(path).await?;
         tracing::trace!(?url, "PATCH request");
 
         let response = self
             .inner
             .patch(&url)
-            .bearer_auth(&self.bearer)
+            .bearer_auth(&bearer)
             .json(&body)
             .send()
             .await?;
@@ -158,15 +172,10 @@ impl SfClient {
     }
 
     async fn delete(&self, path: &str) -> SfResult<SfResponse<()>> {
-        let url = self.url(path);
+        let (url, bearer) = self.url(path).await?;
         tracing::trace!(?url, "DELETE request");
 
-        let response = self
-            .inner
-            .delete(&url)
-            .bearer_auth(&self.bearer)
-            .send()
-            .await?;
+        let response = self.inner.delete(&url).bearer_auth(&bearer).send().await?;
         let headers = response.headers().clone();
         let status = response.status();
         let body = response.text().await?;
